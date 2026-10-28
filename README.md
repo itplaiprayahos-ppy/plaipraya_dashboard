@@ -1,70 +1,116 @@
-# Getting Started with Create React App
+# KPI Dashboard โรงพยาบาลปลายพระยา
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+ระบบแสดงผลตัวชี้วัด (MOU / กระทรวง / ตรวจราชการ / กลุ่มอื่นๆ) ดึงข้อมูลจาก HDC (opendata.moph.go.th)
+และกรอกข้อมูลเองได้ — **ตัวชี้วัด กลุ่ม หน่วยบริการ และการตั้งค่าทั้งหมดจัดการผ่านหน้าเว็บ ไม่ต้องแก้โค้ด**
 
-## Available Scripts
+## โครงสร้างโปรเจกต์
 
-In the project directory, you can run:
+```
+plaipraya_dashboard/
+├─ src/                         # Frontend (React)
+│  ├─ api.js                    # axios กลาง (baseURL + cookie)
+│  ├─ context/                  # AuthContext (ผู้ใช้), AppDataContext (กลุ่ม + ตั้งค่า)
+│  ├─ components/               # SideBar, TopBar, StatCards, KpiCard, AdminRoute, Loading
+│  ├─ utils/kpi.js              # ฟังก์ชันแสดงเกณฑ์/ตัวเลข
+│  └─ page/
+│     ├─ HomePage.js            # หน้าแรก (ทุกกลุ่ม)
+│     ├─ KpiGroupPage.js        # หน้าตัวชี้วัดของกลุ่ม /kpi/:slug (ใช้หน้าเดียวทุกกลุ่ม)
+│     ├─ KpiDetailPage.js       # รายละเอียดรายหน่วยบริการ /kpi/:slug/detail/:id
+│     ├─ admin/                 # หน้าผู้ดูแล: ตัวชี้วัด, กลุ่ม, ซิงค์ HDC, ตั้งค่า+หน่วยบริการ, ผู้ใช้
+│     └─ ...                    # Login, Signup, ProfileEdit, PP Fee
+└─ backend/                     # Backend (Express + PostgreSQL)
+   ├─ server.js
+   ├─ db/schema.sql             # โครงสร้างตารางทั้งหมด
+   ├─ db/seed-data.json         # ตัวชี้วัดเริ่มต้น 154 รายการ (ย้ายมาจากโค้ดเดิม)
+   ├─ db/seed.js                # ใส่ข้อมูลเริ่มต้น + ย้ายข้อมูลจากตารางเดิม
+   ├─ scripts/setup.js          # npm run setup
+   ├─ services/
+   │  ├─ kpiEngine.js           # คำนวณเป้าหมาย/ผลงาน/ร้อยละ จากการตั้งค่า
+   │  ├─ hdc.js                 # ซิงค์ข้อมูลจาก HDC
+   │  └─ settings.js            # ค่าตั้งค่าระบบ
+   ├─ middleware/auth.js        # requireLogin / requireAdmin
+   └─ routes/                   # auth, user, settings(+units), groups, kpis, hdc, ppfeeschedule
+```
 
-### `npm start`
+### หลักการทำงาน
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+| ตาราง | เก็บอะไร |
+|---|---|
+| `fiscal_years` | ปีงบประมาณ — **ตัวชี้วัดแยกตามปี** (`kpis.b_year`) แต่ละปีตั้งค่าใหม่หรือคัดลอกจากปีก่อนได้ |
+| `kpi_groups` | กลุ่มตัวชี้วัด → สร้างเมนูและหน้า `/kpi/<slug>` อัตโนมัติ (ใช้ร่วมทุกปี) |
+| `kpis` | ตัวชี้วัด: ชื่อ ลำดับ เกณฑ์ (≥ ≤ > <) ตัวคูณ (ร้อยละ/ต่อพัน/ต่อแสน) ลิงก์ |
+| `kpi_sources` | ตัวชี้วัดนี้ใช้ tableName ไหนของ HDC และรวมฟิลด์ไหนเป็นเป้าหมาย/ผลงาน (หลายตารางได้) |
+| `hdc_raw` | ข้อมูลดิบจาก HDC ทุกตาราง เก็บเป็น JSONB (ไม่ต้องสร้างตารางใหม่ต่อตัวชี้วัด) |
+| `kpi_manual_values` | ค่าที่กรอกเองรายหน่วยบริการ (ทับค่าจาก HDC) |
+| `units` | หน่วยบริการที่แสดงในตาราง/กราฟ/ฟอร์ม |
+| `app_settings` | ปีงบประมาณ รหัสจังหวัด/อำเภอ/เขต หน่วยหลัก URL ของ HDC |
+| `hdc_sync_log` | ประวัติการซิงค์ (ใคร เมื่อไร กี่แถว สำเร็จหรือไม่) |
+| `audit_logs` | บันทึกการใช้งานทั้งหมด (เข้าสู่ระบบ แก้ไข ซิงค์ ข้อผิดพลาด) |
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+**สูตร:** `ผลลัพธ์ = (ผลรวมฟิลด์ผลงาน × ตัวคูณ) ÷ ผลรวมฟิลด์เป้าหมาย`
 
-### `npm test`
+## ติดตั้ง
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+ต้องมี Node.js 18+ และ PostgreSQL 13+ (มีฐานข้อมูลเปล่า เช่น `dashboard_db`)
 
-### `npm run build`
+```bash
+# 1) Backend
+cd backend
+copy .env.example .env        # (Mac/Linux: cp) แล้วแก้ค่าใน .env — ต้องตั้ง COOKIE_SECRET, DB_PASSWORD, ADMIN_PASSWORD
+npm install
+npm run setup                 # สร้างตาราง + chospital + ตัวชี้วัดเริ่มต้น + บัญชี admin (รันซ้ำได้ ไม่ซ้ำข้อมูล)
+npm start                     # http://localhost:4000
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+# 2) Frontend (อีกหน้าต่าง ที่โฟลเดอร์หลัก)
+copy .env.example .env
+npm install
+npm start                     # http://localhost:3000
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### อัปเกรดจากเวอร์ชันเดิม
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+เปิด server ใหม่ (`npm start`) ระบบจะอัปเดตโครงสร้างฐานข้อมูลให้เอง — ตัวชี้วัดที่มีอยู่จะถูกกำหนดเป็นปีงบเริ่มต้นในหน้าตั้งค่า
 
-### `npm run eject`
+`npm run setup` จะย้ายข้อมูลจากตารางเดิม (`s_dm_control`, `s_2q_adl` ฯลฯ) เข้า `hdc_raw` และค่าที่กรอกใน `s_thai_id`
+ให้อัตโนมัติ ตารางเดิมยังอยู่ (ไม่ถูกลบ) — ลบทิ้งได้เองเมื่อตรวจสอบแล้ว
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+## วิธีใช้ (ผู้ดูแลระบบ)
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+เข้าสู่ระบบด้วยบัญชี admin แล้วใช้เมนู **ผู้ดูแลระบบ** ใน Sidebar
+ทุกหน้าแสดงตาม **ปีงบประมาณที่เลือกที่มุมบนขวา** (ผู้ใช้ทุกคนเลือกปีที่จะดูเองได้)
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+- **ปีงบประมาณ** — สร้างปีใหม่ (เช่น 2570) แบบ "เริ่มจากว่าง" หรือ "คัดลอกจากปี 2569" แล้วไปแก้ไขตัวชี้วัดของปีนั้น,
+  ตั้งปีเริ่มต้นที่แสดงเมื่อเปิดเว็บ, ลบปี (ตัวชี้วัดและค่าที่กรอกของปีนั้นจะถูกลบ)
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+- **จัดการตัวชี้วัด** — เพิ่ม/แก้ไข/ลบ/เรียงลำดับ (▲▼) เลือกกลุ่มด้านบน
+  - *เพิ่มตัวชี้วัดจาก HDC:* กด "+ เพิ่มตาราง" ใส่ tableName (เช่น `s_dm_control`) → "ดูรายชื่อฟิลด์" → กด `+เป้า` / `+ผลงาน` ที่ฟิลด์ที่ต้องการ
+  - *ตัวชี้วัดกรอกเอง:* ไม่ต้องใส่ตาราง แล้วเปิด "เปิดให้กรอกเป้าหมาย/ผลงานเอง"
+  - *อัตราตาย (ยิ่งน้อยยิ่งดี):* เลือกเงื่อนไข "≤"
+  - *หัวข้อที่มีข้อย่อย:* เปิด "เป็นหัวข้อ" แล้วสร้างข้อย่อยต่อด้านล่าง (ปุ่ม ⤵ แทรกด้านล่าง)
+- **กลุ่มตัวชี้วัด** — เพิ่มกลุ่มใหม่ (เช่น QOF) จะได้เมนูและหน้าใหม่ทันที เลือกไอคอน/สี/แสดงหน้าแรก
+- **ซิงค์ข้อมูล HDC** — สถานะทุกตาราง ซิงค์ทีละตารางหรือทั้งหมด
+- **ตั้งค่า / หน่วยบริการ** — เปลี่ยนปีงบประมาณ รหัสจังหวัด หน่วยหลัก, เพิ่ม/ซ่อน/เรียงหน่วยบริการ (ค้นหาจาก chospital ได้)
+- **ผู้ใช้งาน** — เปลี่ยนสิทธิ์ user / admin, ตั้งรหัสผ่านใหม่ให้ผู้ใช้ (ปุ่มกุญแจ), ลบผู้ใช้
+- **บันทึกการใช้งาน** — ดูย้อนหลังว่าใครเข้าสู่ระบบ/ใส่รหัสผิด/ซิงค์/กรอกข้อมูล/แก้ตั้งค่า เมื่อไร จาก IP ไหน
+  กรองตามวันที่ หมวด ผู้ใช้ ระดับ ค้นหาข้อความ และส่งออก Excel ได้
 
-## Learn More
+### สิทธิ์ผู้ใช้
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+| สิทธิ์ | ทำอะไรได้ |
+|---|---|
+| **user** (ผู้สมัครใหม่ทุกคน) | ดูข้อมูลอย่างเดียว ไม่เห็นเมนูผู้ดูแลระบบและปุ่ม ⋮ ซิงค์/กรอกข้อมูล, แก้ข้อมูลส่วนตัว/เปลี่ยนรหัสผ่านตัวเอง |
+| **admin** | ทุกอย่าง: ตั้งค่า ซิงค์ HDC กรอกข้อมูล จัดการตัวชี้วัด/ปีงบ/ผู้ใช้ ดูบันทึกการใช้งาน |
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+(ผู้ใช้ที่เคยเป็น superadmin จะถูกเปลี่ยนเป็น admin อัตโนมัติ)
 
-### Code Splitting
+## API หลัก
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+| Method | Path | สิทธิ์ |
+|---|---|---|
+| GET | `/api/years`, `/api/home?year=`, `/api/groups?year=`, `/api/groups/:slug/kpis?year=`, `/api/kpis/:id/detail` | ทุกคน |
+| PUT | `/api/profile`, `/api/profile/password` | ล็อกอิน |
+| POST/GET/PUT | `/api/kpis/:id/sync`, `/api/hdc/*`, `/api/kpis/:id/values` | admin |
+| GET | `/api/admin/logs`, `/api/admin/logs/meta` | admin |
+| CRUD | `/api/admin/years`, `/api/admin/kpis?year=`, `/api/groups`, `/api/units`, `/api/settings`, `/api/admin/users`, PP Fee (เขียน) | admin |
 
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+ทดสอบ backend: `cd backend && npm test`

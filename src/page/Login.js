@@ -43,6 +43,12 @@ function Login() {
                     title: "เข้าสู่ระบบไม่สำเร็จ",
                     text: "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง",
                 });
+            } else if (err.response) {
+                Swal.fire({
+                    icon: "error",
+                    title: "เข้าสู่ระบบไม่สำเร็จ",
+                    text: (err.response.data && (err.response.data.status || err.response.data.message)) || "เกิดข้อผิดพลาด กรุณาลองใหม่",
+                });
             } else {
                 Swal.fire({
                     icon: "error",

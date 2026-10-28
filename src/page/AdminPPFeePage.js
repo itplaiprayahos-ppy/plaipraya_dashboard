@@ -289,7 +289,7 @@ function AdminPPFeePage() {
                 if (res.data.loggedIn && res.data.username) {
 
                     if (res.data.role !== "admin") {
-                        changepage('')
+                        changepage('');
                     }
                 } else {
                     changepage('login')

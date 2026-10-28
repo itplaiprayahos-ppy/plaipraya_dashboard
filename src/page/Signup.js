@@ -73,14 +73,13 @@ function Signup() {
             Swal.fire({
                 icon: 'error',
                 title: 'เกิดข้อผิดพลาด',
-                text: 'ไม่สามารถสมัครสมาชิกได้ กรุณาลองใหม่',
+                text: (err.response && err.response.data && err.response.data.status) || 'ไม่สามารถสมัครสมาชิกได้ กรุณาลองใหม่',
                 confirmButtonText: 'ตกลง'
             });
         }
     };
 
 
-    console.log(formData)
     return (
         <Container fluid className="d-flex justify-content-center align-items-center h-100">
             <Row className="w-100 justify-content-center">

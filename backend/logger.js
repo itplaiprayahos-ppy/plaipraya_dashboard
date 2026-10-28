@@ -1,27 +1,24 @@
+const path = require('path');
+const fs = require('fs');
 const { createLogger, format, transports } = require('winston');
-const { combine, timestamp, printf } = format;
-const { PostgresTransport } = require('@innova2/winston-pg');
+require('dotenv').config({ path: path.join(__dirname, '.env'), quiet: true });
 
-const logFormat = printf(({ level, message, timestamp }) => {
-    return `[${timestamp}] ${level.toUpperCase()} ${message}`;
-});
+const { combine, timestamp, printf } = format;
+
+const logFormat = printf(({ level, message, timestamp }) => `[${timestamp}] ${level.toUpperCase()} ${message}`);
+
+const logDir = path.join(__dirname, 'logs');
+fs.mkdirSync(logDir, { recursive: true });
+
+const logTransports = [
+    new transports.Console(),
+    new transports.File({ filename: path.join(logDir, 'app.log'), maxsize: 5 * 1024 * 1024, maxFiles: 5 }),
+];
 
 const logger = createLogger({
     level: 'info',
-    format: combine(
-        timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-        logFormat
-    ),
-    transports: [
-        new transports.Console(),
-        new transports.File({ filename: 'logs/app.log' }),
-
-        new PostgresTransport({
-            connectionString: process.env.DATABASE_URL,
-            tableName: 'winston_logs',
-            meta: true
-        })
-    ],
+    format: combine(timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }), logFormat),
+    transports: logTransports,
 });
 
 module.exports = logger;

@@ -1,91 +1,83 @@
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env'), quiet: true });
 const express = require('express');
 const cors = require('cors');
-const bodyParser = require('body-parser');
-const createError = require('http-errors');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
-const rateLimit = require("express-rate-limit");
+const rateLimit = require('express-rate-limit');
 
-const db = require('./config/db');
+if (!process.env.COOKIE_SECRET) {
+    console.error('❌ ยังไม่ได้ตั้ง COOKIE_SECRET ใน backend/.env (ล็อกอินจะใช้ไม่ได้)');
+    process.exit(1);
+}
+
+const isDev = (process.env.ENVIRONMENT || process.env.NODE_ENV || 'development') === 'development';
+const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:3000').split(',').map(s => s.trim());
 
 const app = express();
+app.set('trust proxy', 1);
 
-const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 100,
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: "Too many request",
-})
-
-
-// Middleware
-app.use(bodyParser.json({ limit: '50mb' }));
-app.use(helmet());
-app.use(limiter)
-app.use(cookieParser());
+// cors ต้องมาก่อน middleware อื่น เพื่อให้ทุก response (รวม 429/500) มี header CORS
 app.use(cors({
-    origin: 'http://localhost:3000',
+    origin: allowedOrigins,
     credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     allowedHeaders: 'Origin, X-Requested-With, Content-Type, Accept, Authorization',
-    exposedHeaders: ["set-cookie"]
 }));
+app.use(helmet());
+app.use(rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 1000,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: 'Too many requests' },
+    skip: () => isDev,
+}));
+app.use(cookieParser());
+app.use(express.json({ limit: '2mb' }));
 
 // Routes
-// mou
-app.use('/api', require('./routes/mou/s_childdev_specialpp'));
-app.use('/api', require('./routes/mou/s_anc_quality'));
-app.use('/api', require('./routes/mou/s_ncd_screen_repleate1'));
-app.use('/api', require('./routes/mou/s_epi_complete'));
-app.use('/api', require('./routes/mou/s_ht_screen_follow'));
-app.use('/api', require('./routes/mou/s_breast_screen'));
-app.use('/api', require('./routes/mou/s_colon_screen'));
-app.use('/api', require('./routes/mou/s_dm_control'));
-app.use('/api', require('./routes/mou/s_ht_control'));
-app.use('/api', require('./routes/mou/s_ttm35'));
-app.use('/api', require('./routes/mou/s_2q_adl_anc_chronic'));
-app.use('/api', require('./routes/mou/s_epi1_3'));
-app.use('/api', require('./routes/mou/s_dental_70'));
-app.use('/api', require('./routes/mou/s_thai_id'));
-
-app.use('/api', require('./routes/mou/summary_mou'));
-
-//กระทรวง
-app.use('/api', require('./routes/ministry/s_stroke_admit_death'));
-app.use('/api', require('./routes/ministry/s_death28pa'));
-app.use('/api', require('./routes/ministry/s_kpi_sepsis_septic'));
-app.use('/api', require('./routes/ministry/s_stemi_death'));
-app.use('/api', require('./routes/ministry/s_dm_hba1c'));
-
-app.use('/api', require('./routes/ministry/summary_ministry'));
-
-// ตรวจราชการ
-
-app.use('/api', require('./routes/inspector/summary_inspector'));
-
-//auth
 app.use('/api', require('./routes/auth'));
 app.use('/api', require('./routes/user'));
-//logs
-app.use('/api', require('./routes/logs'));
-//ppfeeschedule
+app.use('/api', require('./routes/settings'));
+app.use('/api', require('./routes/groups'));
+app.use('/api', require('./routes/years'));
+app.use('/api', require('./routes/kpis'));
+app.use('/api', require('./routes/hdc'));
 app.use('/api', require('./routes/ppfeeschedule'));
+app.use('/api', require('./routes/logs'));
 
-// Port
-const port = process.env.PORT || 4000;
-app.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
-});
-
-// 404 Error
-app.use((req, res, next) => {
-    next(createError(404));
+// 404
+app.use((req, res) => {
+    res.status(404).json({ message: 'Not found' });
 });
 
 // Error handler
-app.use(function (err, req, res, next) {
-    console.error(err.message);
-    if (!err.statusCode) err.statusCode = 500;
-    res.status(err.statusCode).send(err.message);
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+    // ฐานข้อมูลเชื่อมต่อไม่ได้ / รหัสผ่านผิด / ไม่มีตาราง (ยังไม่ได้ npm run setup)
+    if (['ECONNREFUSED', 'ENOTFOUND', '28P01', '3D000'].includes(err.code)) {
+        console.error('Database error:', err.message);
+        return res.status(503).json({ message: `เชื่อมต่อฐานข้อมูลไม่ได้: ${err.message}` });
+    }
+    if (err.code === '42P01' || err.code === '42883' || err.code === '42703') {
+        console.error('Database schema error:', err.message);
+        return res.status(500).json({ message: `ฐานข้อมูลยังไม่ครบ กรุณารัน npm run setup (${err.message})` });
+    }
+    const status = err.statusCode || err.status || 500;
+    if (status >= 500) {
+        if (!err.statusCode) console.error(err);
+        const action = /\/sync/.test(req.path) ? 'hdc.sync_failed' : 'system.error';
+        require('./services/audit').audit(req, action, `${req.method} ${req.originalUrl}: ${err.message}`, { level: 'error' });
+    }
+    res.status(status).json({ message: status >= 500 && !err.statusCode ? 'Server error' : err.message });
 });
+
+const port = process.env.PORT || 4000;
+if (require.main === module) {
+    require('./db/migrate').migrate()
+        .catch(err => console.error('⚠️  อัปเดตโครงสร้างฐานข้อมูลไม่สำเร็จ:', err.message))
+        .finally(() => app.listen(port, () => console.log(`Server is running on port ${port}`)));
+}
+
+module.exports = app;

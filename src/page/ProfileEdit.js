@@ -7,6 +7,8 @@ function ProfileEdit() {
     const [loading, setLoading] = useState(true);
     const [submitLoading, setSubmitLoading] = useState(false); // submit form
     const [hoverPrimary, setHoverPrimary] = useState(false);
+    const [pw, setPw] = useState({ current: '', next: '', confirm: '' });
+    const [pwSaving, setPwSaving] = useState(false);
     const [formData, setFormData] = useState({
         firstName: '',
         lastName: '',
@@ -32,6 +34,10 @@ function ProfileEdit() {
                     department: data.department || '',
                 });
             } catch (error) {
+                if (error.response && error.response.status === 401) {
+                    window.location.href = '/login';
+                    return;
+                }
                 console.error("Error fetching data:", error);
             } finally {
                 setLoading(false);
@@ -49,12 +55,11 @@ function ProfileEdit() {
 
         try {
             setSubmitLoading(true);
-            const res = await axios.put(`${process.env.REACT_APP_BACKEND_URL}/api/profile`, {
+            await axios.put(`${process.env.REACT_APP_BACKEND_URL}/api/profile`, {
                 first_name: formData.firstName,
                 last_name: formData.lastName,
                 email: formData.email,
                 department: formData.department,
-                password: formData.password
             }, { withCredentials: true });
 
             await Swal.fire({
@@ -63,7 +68,6 @@ function ProfileEdit() {
                 text: 'บันทึกข้อมูลเรียบร้อยแล้ว',
                 confirmButtonText: 'ตกลง',
             })
-            console.log(res.data);
         } catch (err) {
             console.error(err);
             await Swal.fire({
@@ -76,6 +80,33 @@ function ProfileEdit() {
             setSubmitLoading(false);
         }
     }
+
+    const handlePassword = async (e) => {
+        e.preventDefault();
+        if (pw.next.length < 8) {
+            Swal.fire({ icon: 'warning', title: 'รหัสผ่านใหม่ต้องมีอย่างน้อย 8 ตัวอักษร' });
+            return;
+        }
+        if (pw.next !== pw.confirm) {
+            Swal.fire({ icon: 'warning', title: 'รหัสผ่านใหม่ไม่ตรงกัน' });
+            return;
+        }
+        setPwSaving(true);
+        try {
+            await axios.put(`${process.env.REACT_APP_BACKEND_URL}/api/profile/password`, {
+                current_password: pw.current, new_password: pw.next,
+            });
+            setPw({ current: '', next: '', confirm: '' });
+            Swal.fire({ icon: 'success', title: 'เปลี่ยนรหัสผ่านแล้ว' });
+        } catch (err) {
+            Swal.fire({
+                icon: 'error', title: 'เปลี่ยนรหัสผ่านไม่สำเร็จ',
+                text: (err.response && err.response.data && err.response.data.message) || 'กรุณาลองใหม่',
+            });
+        } finally {
+            setPwSaving(false);
+        }
+    };
 
     return (
         <Container fluid
@@ -155,6 +186,31 @@ function ProfileEdit() {
                                 onMouseEnter={() => setHoverPrimary(true)}
                                 onMouseLeave={() => setHoverPrimary(false)}>
                                 {submitLoading ? 'กำลังบันทึก...' : 'บันทึก'}
+                            </Button>
+                        </div>
+                    </Form>
+
+                    <hr className="my-4" />
+                    <h5 className="mb-3">เปลี่ยนรหัสผ่าน</h5>
+                    <Form onSubmit={handlePassword}>
+                        <Form.Group className="mb-3" controlId="pwCurrent">
+                            <Form.Label>รหัสผ่านเดิม</Form.Label>
+                            <Form.Control type="password" autoComplete="current-password" value={pw.current}
+                                onChange={e => setPw({ ...pw, current: e.target.value })} required />
+                        </Form.Group>
+                        <Form.Group className="mb-3" controlId="pwNext">
+                            <Form.Label>รหัสผ่านใหม่ (อย่างน้อย 8 ตัวอักษร)</Form.Label>
+                            <Form.Control type="password" autoComplete="new-password" value={pw.next}
+                                onChange={e => setPw({ ...pw, next: e.target.value })} required />
+                        </Form.Group>
+                        <Form.Group className="mb-3" controlId="pwConfirm">
+                            <Form.Label>ยืนยันรหัสผ่านใหม่</Form.Label>
+                            <Form.Control type="password" autoComplete="new-password" value={pw.confirm}
+                                onChange={e => setPw({ ...pw, confirm: e.target.value })} required />
+                        </Form.Group>
+                        <div className="d-flex justify-content-end">
+                            <Button type="submit" variant="outline-primary" disabled={pwSaving}>
+                                {pwSaving ? 'กำลังบันทึก...' : 'เปลี่ยนรหัสผ่าน'}
                             </Button>
                         </div>
                     </Form>

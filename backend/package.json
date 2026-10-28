@@ -4,30 +4,29 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon server.js"
+    "start": "nodemon server.js",
+    "serve": "node server.js",
+    "setup": "node scripts/setup.js",
+    "create-admin": "node config/init_admin_user.js",
+    "test": "node --test test/*.test.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "@innova2/winston-pg": "^1.4.0",
     "axios": "^1.10.0",
     "bcrypt": "^6.0.0",
-    "body-parser": "^2.2.0",
-    "cdbreact": "^1.5.19",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^17.2.0",
     "express": "^5.1.0",
     "express-rate-limit": "^8.0.1",
-    "express-session": "^1.18.2",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "nodemon": "^3.1.10",
     "pg": "^8.16.3",
-    "pg-copy-streams": "^7.0.0",
-    "winston": "^3.17.0"
+    "winston": "^3.17.0",
+    "xlsx": "^0.18.5"
   }
 }

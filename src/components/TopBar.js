@@ -4,14 +4,18 @@ import {
     CDBNavItem,
 } from 'cdbreact';
 import { NavLink } from 'react-router-dom';
-import { useEffect, useState } from 'react';
-import axios from 'axios';
-import { Dropdown } from 'react-bootstrap';
+import { useState } from 'react';
+import api from '../api';
+import { useAuth } from '../context/AuthContext';
+import { useAppData } from '../context/AppDataContext';
+import { Dropdown, Form } from 'react-bootstrap';
 import { FaSignOutAlt, FaUser, FaUserCog } from 'react-icons/fa';
 
 function TopBar() {
-    const [username, setUsername] = useState(null);
-    const [role, setRole] = useState(null);
+    const { user } = useAuth();
+    const { years, year, setYear } = useAppData();
+    const username = user ? user.username : null;
+    const role = user ? user.role : null;
     const [hoverLogin, setHoverLogin] = useState(false);
 
     const bgBlack = { backgroundColor: '#f0f1f3', color: '#2A2F5B' };
@@ -20,38 +24,14 @@ function TopBar() {
         window.location.href = "/" + path
     }
 
-    useEffect(() => {
-        const checkAuth = async () => {
-            try {
-                const res = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/checkAuth`, {
-                    withCredentials: true
-                });
-                if (res.data.loggedIn && res.data.username) {
-                    setUsername(res.data.username);
-                    setRole(res.data.role)
-                }
-            } catch (error) {
-                if (error.response && error.response.status === 401) {
-                    return
-                }
-                // console.error("Auth check failed:", error);
-            }
-        };
-        checkAuth();
-    }, []);
-
     const handleLogout = async () => {
         try {
-            await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/logout`, {
-                withCredentials: true
-            });
-            // setUsername(null)
+            await api.get('/logout');
         } catch (error) {
-            console.error("Auth check failed:", error);
+            console.error("Logout failed:", error);
         } finally {
             changepage('')
         }
-        window.location.reload();
     };
 
     return (
@@ -59,6 +39,22 @@ function TopBar() {
             <CDBNavbar style={bgBlack} dark expand="md">
                 <div style={{ display: 'flex', alignItems: 'center', width: '100%', padding: '10px 32px' }}>
                     <CDBNavbarNav right style={{ marginLeft: 'auto', alignItems: 'center' }}>
+                        {years.length > 0 && (
+                            <CDBNavItem>
+                                <div className="d-flex align-items-center me-3" style={{ color: '#2A2F5B' }}>
+                                    <span className="me-2 text-nowrap" style={{ fontWeight: 500 }}>ปีงบประมาณ</span>
+                                    <Form.Select
+                                        size="sm"
+                                        aria-label="เลือกปีงบประมาณ"
+                                        value={year || ''}
+                                        onChange={e => setYear(e.target.value)}
+                                        style={{ width: 100, borderColor: '#0d9488' }}
+                                    >
+                                        {years.map(y => <option key={y.year} value={y.year}>{y.year}</option>)}
+                                    </Form.Select>
+                                </div>
+                            </CDBNavItem>
+                        )}
                         <CDBNavItem>
                             {username ? (
                                 <Dropdown align="end">
@@ -96,17 +92,21 @@ function TopBar() {
                                             <FaUser size={16} style={{ marginRight: '0.5rem' }} /> ข้อมูลส่วนตัว
                                         </Dropdown.Item>
                                         {role === "admin" && (
-                                            <Dropdown.Item
-                                                onClick={() => changepage('pp-fee-management')}
-                                                style={{
-                                                    color: "#2C3B50",
-                                                    fontWeight: "500",
-                                                    display: 'flex',
-                                                    alignItems: 'center'
-                                                }}
-                                            >
-                                                <FaUserCog size={16} style={{ marginRight: '0.5rem' }} /> แอดมิน
-                                            </Dropdown.Item>
+                                            <>
+                                                {[
+                                                    ['admin/kpis', 'จัดการตัวชี้วัด'],
+                                                    ['admin/settings', 'ตั้งค่าระบบ'],
+                                                    ['pp-fee-management', 'จัดการ PP Fee'],
+                                                ].map(([path, label]) => (
+                                                    <Dropdown.Item
+                                                        key={path}
+                                                        onClick={() => changepage(path)}
+                                                        style={{ color: "#2C3B50", fontWeight: "500", display: 'flex', alignItems: 'center' }}
+                                                    >
+                                                        <FaUserCog size={16} style={{ marginRight: '0.5rem' }} /> {label}
+                                                    </Dropdown.Item>
+                                                ))}
+                                            </>
                                         )}
 
                                         <Dropdown.Item
