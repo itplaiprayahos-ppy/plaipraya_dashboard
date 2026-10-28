@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom';
 import { FiArrowRight } from 'react-icons/fi';
 import api, { errMsg } from '../api';
 import { useAppData } from '../context/AppDataContext';
+import { useAlerts } from '../context/AlertsContext';
+import { FiAlertTriangle, FiXCircle } from 'react-icons/fi';
 import { FullPageLoading } from '../components/Loading';
 import PageHeader from '../components/PageHeader';
 import StatCards from '../components/StatCards';
@@ -45,6 +47,7 @@ function HomePage() {
     const [data, setData] = useState(null);
     const [error, setError] = useState(null);
     const { year } = useAppData();
+    const { data: alerts } = useAlerts();
 
     useEffect(() => {
         if (!year) return;
@@ -71,6 +74,23 @@ function HomePage() {
                 <Alert variant="info">
                     ปีงบประมาณ {data.year} ยังไม่มีตัวชี้วัด — ผู้ดูแลระบบเพิ่มได้ที่เมนู "จัดการตัวชี้วัด" หรือคัดลอกจากปีก่อนที่เมนู "ปีงบประมาณ"
                 </Alert>
+            )}
+
+            {alerts && alerts.alerts.length > 0 && (
+                <div className={`alert-banner ${alerts.summary.sync_failed ? 'danger' : 'warning'}`}>
+                    <span className="ab-ic">{alerts.summary.sync_failed ? <FiXCircle size={20} /> : <FiAlertTriangle size={20} />}</span>
+                    <div className="ab-text">
+                        <b>ข้อมูล HDC ต้องตรวจสอบ {alerts.alerts.length} ตาราง</b>
+                        <small>
+                            {[
+                                alerts.summary.sync_failed && `ซิงค์ล้มเหลว ${alerts.summary.sync_failed}`,
+                                alerts.summary.stale && `ไม่ได้อัปเดตเกิน ${alerts.stale_days} วัน ${alerts.summary.stale}`,
+                                alerts.summary.never_synced && `ยังไม่เคยซิงค์ ${alerts.summary.never_synced}`,
+                            ].filter(Boolean).join(' · ')} (เห็นเฉพาะผู้ดูแลระบบ)
+                        </small>
+                    </div>
+                    <Link to="/admin/hdc" className={`btn ${alerts.summary.sync_failed ? 'btn-danger' : 'btn-warning'}`}>ดูรายละเอียด</Link>
+                </div>
             )}
 
             {totalKpis > 0 && <StatCards kpis={allKpis} />}

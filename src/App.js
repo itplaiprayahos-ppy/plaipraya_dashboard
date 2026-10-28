@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes, useLocation, useParams } from '
 import './App.css';
 import { AuthProvider } from './context/AuthContext';
 import { AppDataProvider } from './context/AppDataContext';
+import { AlertsProvider } from './context/AlertsContext';
 import Sidebar from './components/SideBar';
 import Footer from './components/Footer';
 import TopBar from './components/TopBar';
@@ -58,6 +59,7 @@ function App() {
         <div className="App">
             <AuthProvider>
                 <AppDataProvider>
+                    <AlertsProvider>
                     <BrowserRouter>
                         <Shell>
                                     <Routes>
@@ -82,6 +84,7 @@ function App() {
                                     </Routes>
                         </Shell>
                     </BrowserRouter>
+                    </AlertsProvider>
                 </AppDataProvider>
             </AuthProvider>
         </div>

@@ -9,6 +9,7 @@ const SETTING_DEFS = {
     zone_code:       { label: 'รหัสเขตสุขภาพ', default: process.env.ZONE_CODE || '11' },
     amp_code:        { label: 'รหัสอำเภอ', default: process.env.AMP_CODE || '8106' },
     default_hoscode: { label: 'รหัสหน่วยบริการหลัก (ค่าเริ่มต้นของสรุปผล)', default: '99862' },
+    alert_stale_days:{ label: 'แจ้งเตือนเมื่อข้อมูล HDC ไม่ได้อัปเดตเกิน (วัน, 0 = ปิด)', default: '7' },
     hdc_api_url:     { label: 'URL API ของ HDC', default: process.env.HDC_API_URL || 'https://opendata.moph.go.th/api/report_data' },
 };
 

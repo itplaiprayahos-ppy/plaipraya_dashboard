@@ -71,7 +71,8 @@ router.get('/groups/:slug/kpis', asyncHandler(async (req, res) => {
     const year = yearOf(req, settings);
     const gr = await pool.query('SELECT * FROM kpi_groups WHERE slug = $1 AND active', [req.params.slug]);
     if (!gr.rowCount) return res.status(404).json({ message: 'ไม่พบกลุ่มตัวชี้วัด' });
-    res.json({ year, group: gr.rows[0], kpis: await groupWithKpis(gr.rows[0].id, year, settings) });
+    const staleDays = Math.max(0, parseInt(settings.alert_stale_days, 10) || 0);
+    res.json({ year, group: gr.rows[0], stale_days: staleDays, kpis: await groupWithKpis(gr.rows[0].id, year, settings) });
 }));
 
 router.get('/kpis/:id/detail', asyncHandler(async (req, res) => {

@@ -4,6 +4,7 @@ import { FiCalendar, FiLogIn, FiLogOut, FiMenu, FiSettings, FiUser, FiList, FiDo
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useAppData } from '../context/AppDataContext';
+import AlertBell from './AlertBell';
 
 const ADMIN_TITLES = {
     '/admin/kpis': 'จัดการตัวชี้วัด',
@@ -71,6 +72,8 @@ function TopBar({ onMenu }) {
                         </select>
                     </label>
                 )}
+
+                {isAdmin && <AlertBell />}
 
                 {user ? (
                     <Dropdown align="end">

@@ -18,6 +18,9 @@ router.put('/settings', requireAdmin, asyncHandler(async (req, res) => {
     if (values.b_year !== undefined && !/^\d{4}$/.test(String(values.b_year))) {
         return res.status(400).json({ message: 'ปีงบประมาณต้องเป็นตัวเลข 4 หลัก เช่น 2569' });
     }
+    if (values.alert_stale_days !== undefined && !/^\d{1,3}$/.test(String(values.alert_stale_days).trim())) {
+        return res.status(400).json({ message: 'จำนวนวันแจ้งเตือนต้องเป็นตัวเลข 0-999' });
+    }
     if (values.b_year !== undefined) {
         const fy = await pool.query('SELECT 1 FROM fiscal_years WHERE year = $1', [String(values.b_year)]);
         if (!fy.rowCount) return res.status(400).json({ message: `ยังไม่มีปีงบประมาณ ${values.b_year} — เพิ่มที่เมนู "ปีงบประมาณ" ก่อน` });

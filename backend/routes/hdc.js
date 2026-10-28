@@ -5,6 +5,7 @@ const pool = require('../config/db');
 const { requireAdmin, displayName } = require('../middleware/auth');
 const { asyncHandler } = require('../services/util');
 const { syncTable, listFields } = require('../services/hdc');
+const { computeAlerts } = require('../services/alerts');
 const { getSettings } = require('../services/settings');
 
 // ตาราง HDC ทั้งหมดที่ตัวชี้วัดใช้ + สถานะซิงค์
@@ -31,6 +32,11 @@ router.get('/hdc/tables', requireAdmin, asyncHandler(async (req, res) => {
         [year]
     );
     res.json({ year, tables: r.rows });
+}));
+
+// การแจ้งเตือนสถานะข้อมูล HDC (admin)
+router.get('/alerts', requireAdmin, asyncHandler(async (req, res) => {
+    res.json(await computeAlerts(req.query.year));
 }));
 
 router.post('/hdc/sync/:table', requireAdmin, asyncHandler(async (req, res) => {

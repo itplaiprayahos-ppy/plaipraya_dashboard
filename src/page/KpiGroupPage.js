@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Button, Col, Form, Modal, OverlayTrigger, Row, Spinner, Table, Tooltip } from 'react-bootstrap';
-import { FiExternalLink, FiMoreVertical, FiRefreshCw, FiSearch, FiSettings } from 'react-icons/fi';
+import { FiAlertTriangle, FiExternalLink, FiMoreVertical, FiRefreshCw, FiSearch, FiSettings } from 'react-icons/fi';
+import { notifyAlertsChanged } from '../context/AlertsContext';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import api, { errMsg } from '../api';
@@ -99,8 +100,10 @@ function KpiGroupPage() {
             closeModal();
             await Swal.fire({ icon: 'success', title: 'ซิงค์สำเร็จ', text: `นำเข้าข้อมูล ${count.toLocaleString()} แถว`, confirmButtonText: 'ตกลง' });
             load(true);
+            notifyAlertsChanged();
         } catch (err) {
             setBusy(false);
+            notifyAlertsChanged();
             if (err.response && err.response.status === 401) return needLogin();
             Swal.fire({ icon: 'error', title: 'Sync ล้มเหลว', text: errMsg(err, 'ไม่สามารถซิงค์ข้อมูลได้ กรุณาลองใหม่') });
         }
@@ -145,6 +148,11 @@ function KpiGroupPage() {
     kpis.filter(k => !k.is_header).forEach(k => { counts.all++; counts[kpiStatus(k)]++; });
     const lastSync = kpis.reduce((a, k) => (k.last_sync && (!a || k.last_sync.synced_at > a) ? k.last_sync.synced_at : a), null);
     const cols = isAdmin ? 8 : 7;
+    // ตัวชี้วัด HDC ที่ข้อมูลไม่ได้อัปเดตเกิน X วัน (หรือยังไม่เคยซิงค์)
+    const staleDays = data.stale_days || 0;
+    const staleKpis = staleDays > 0
+        ? kpis.filter(k => k.has_sources && (!k.last_sync || (Date.now() - new Date(k.last_sync.synced_at).getTime()) / 86400000 >= staleDays))
+        : [];
 
     return (
         <div className="page">
@@ -165,6 +173,24 @@ function KpiGroupPage() {
                     </>
                 )}
             </PageHeader>
+
+            {staleKpis.length > 0 && (
+                <div className="alert-banner warning">
+                    <span className="ab-ic"><FiAlertTriangle size={20} /></span>
+                    <div className="ab-text">
+                        <b>ข้อมูลอาจไม่เป็นปัจจุบัน</b>
+                        <small>
+                            มี {staleKpis.length} ตัวชี้วัดที่ข้อมูลจาก HDC ไม่ได้อัปเดตเกิน {staleDays} วัน หรือยังไม่เคยซิงค์
+                            {!isAdmin && ' — แจ้งผู้ดูแลระบบเพื่อซิงค์ข้อมูล'}
+                        </small>
+                    </div>
+                    {isAdmin && (
+                        <Button variant="warning" className="btn-icon" onClick={() => navigate('/admin/hdc')}>
+                            <FiRefreshCw /> ไปหน้าซิงค์ข้อมูล
+                        </Button>
+                    )}
+                </div>
+            )}
 
             <StatCards kpis={kpis} />
 
