@@ -1,4 +1,5 @@
-import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import './App.css';
 import { AuthProvider } from './context/AuthContext';
 import { AppDataProvider } from './context/AppDataContext';
@@ -34,17 +35,31 @@ function DetailRoute() {
     return /^\d+$/.test(id) ? <KpiDetailPage /> : <LegacyDetailRedirect />;
 }
 
+// โครงหน้า: sidebar + topbar + เนื้อหา (มือถือ: sidebar เลื่อนออกมาเมื่อกดปุ่มเมนู)
+function Shell({ children }) {
+    const [open, setOpen] = useState(false);
+    const { pathname } = useLocation();
+    useEffect(() => { setOpen(false); window.scrollTo(0, 0); }, [pathname]);
+    return (
+        <div className={`app-shell ${open ? 'sb-open' : ''}`}>
+            <Sidebar onNavigate={() => setOpen(false)} />
+            <div className="sb-backdrop" onClick={() => setOpen(false)} />
+            <div className="app-main">
+                <TopBar onMenu={() => setOpen(o => !o)} />
+                <main className="app-content">{children}</main>
+                <Footer />
+            </div>
+        </div>
+    );
+}
+
 function App() {
     return (
         <div className="App">
             <AuthProvider>
                 <AppDataProvider>
                     <BrowserRouter>
-                        <div style={{ display: 'flex' }}>
-                            <Sidebar />
-                            <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%', minWidth: 0 }}>
-                                <TopBar />
-                                <div style={{ width: '100%', flex: 1 }}>
+                        <Shell>
                                     <Routes>
                                         <Route path="/" element={<HomePage />} />
                                         <Route path="/kpi/:slug" element={<KpiGroupPage />} />
@@ -65,10 +80,7 @@ function App() {
 
                                         <Route path="*" element={<NotFound />} />
                                     </Routes>
-                                </div>
-                                <Footer />
-                            </div>
-                        </div>
+                        </Shell>
                     </BrowserRouter>
                 </AppDataProvider>
             </AuthProvider>

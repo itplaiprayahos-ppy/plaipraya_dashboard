@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Badge, Button, ButtonGroup, Col, Container, Form, InputGroup, Modal, Row, Spinner, Table } from 'react-bootstrap';
+import { Alert, Badge, Button, ButtonGroup, Col, Form, InputGroup, Modal, Row, Spinner, Table } from 'react-bootstrap';
 import { Link, useSearchParams } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import api, { errMsg } from '../../api';
@@ -7,7 +7,7 @@ import { useAppData } from '../../context/AppDataContext';
 import { FullPageLoading, OverlayLoading } from '../../components/Loading';
 import { MULTIPLIER_PRESETS, OP_OPTIONS, formatCriterion } from '../../utils/kpi';
 
-const TH = { backgroundColor: '#0d9488', color: '#fff', verticalAlign: 'middle' };
+const TH = { verticalAlign: 'middle' };
 
 const emptyKpi = (groupId) => ({
     group_id: groupId,
@@ -334,11 +334,11 @@ function AdminKpiPage() {
     if (!groupsLoaded) return <FullPageLoading />;
 
     return (
-        <Container fluid className="pb-5" style={{ backgroundColor: '#f8f9fa', padding: 25 }}>
+        <div className="page">
             <OverlayLoading show={busy} />
             <Row className="align-items-center my-3">
                 <Col>
-                    <h2 className="mb-0" style={{ fontWeight: 700, color: '#2c3e50' }}>จัดการตัวชี้วัด ปีงบประมาณ {year}</h2>
+                    <h1 className="page-title">จัดการตัวชี้วัด ปีงบประมาณ {year}</h1>
                     <small className="text-muted">เปลี่ยนปีได้ที่ช่อง "ปีงบประมาณ" ด้านบนขวา — ตัวชี้วัดของแต่ละปีแยกกัน</small>
                 </Col>
                 <Col xs="auto">
@@ -373,7 +373,7 @@ function AdminKpiPage() {
                         </Alert>
                     )}
                     {kpis === null ? <FullPageLoading /> : (
-                        <Table bordered hover responsive size="sm" className="bg-white">
+                        <div className="panel"><Table hover responsive className="table-modern">
                             <thead>
                                 <tr>
                                     <th style={{ ...TH, width: 90 }} className="text-center">เรียง</th>
@@ -416,7 +416,7 @@ function AdminKpiPage() {
                                     );
                                 })}
                             </tbody>
-                        </Table>
+                        </Table></div>
                     )}
                 </>
             )}
@@ -441,7 +441,7 @@ function AdminKpiPage() {
                     <Button variant="success" onClick={save}>บันทึก</Button>
                 </Modal.Footer>
             </Modal>
-        </Container>
+        </div>
     );
 }
 

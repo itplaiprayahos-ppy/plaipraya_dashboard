@@ -1,12 +1,12 @@
 import { Fragment, useCallback, useEffect, useState } from 'react';
-import { Badge, Button, Card, Col, Container, Form, Pagination, Row, Spinner, Table } from 'react-bootstrap';
+import { Badge, Button, Card, Col, Form, Pagination, Row, Spinner, Table } from 'react-bootstrap';
 import { useSearchParams } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import Swal from 'sweetalert2';
 import api, { errMsg } from '../../api';
 import { fmtDate } from '../../utils/kpi';
 
-const TH = { backgroundColor: '#0d9488', color: '#fff', verticalAlign: 'middle' };
+const TH = { verticalAlign: 'middle' };
 
 // ชื่อภาษาไทยของแต่ละการกระทำ
 export const ACTION_LABELS = {
@@ -158,8 +158,8 @@ function AdminLogsPage() {
     const s = meta && meta.last7days;
 
     return (
-        <Container fluid className="pb-5" style={{ backgroundColor: '#f8f9fa', padding: 25 }}>
-            <h2 className="my-3" style={{ fontWeight: 700, color: '#2c3e50' }}>บันทึกการใช้งาน</h2>
+        <div className="page">
+            <h1 className="page-title mb-3">บันทึกการใช้งาน</h1>
 
             <Row className="g-3 mb-3">
                 <Col md={3} xs={6}><SummaryCard title="เข้าสู่ระบบ (7 วัน)" value={s && s.logins} color="#0d9488" /></Col>
@@ -238,7 +238,7 @@ function AdminLogsPage() {
                 </small>
             </div>
 
-            <Table bordered hover responsive size="sm" className="bg-white">
+            <div className="panel"><Table hover responsive className="table-modern">
                 <thead>
                     <tr>
                         <th style={{ ...TH, width: 165 }}>วันเวลา</th>
@@ -289,7 +289,7 @@ function AdminLogsPage() {
                         );
                     })}
                 </tbody>
-            </Table>
+            </Table></div>
 
             {data && totalPages > 1 && (
                 <Pagination className="justify-content-center">
@@ -300,7 +300,7 @@ function AdminLogsPage() {
                     <Pagination.Last disabled={page >= totalPages} onClick={() => setPage(totalPages)} />
                 </Pagination>
             )}
-        </Container>
+        </div>
     );
 }
 

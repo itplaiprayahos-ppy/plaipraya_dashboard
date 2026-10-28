@@ -1,16 +1,47 @@
 import { useEffect, useState } from 'react';
-import { Accordion, Alert, Card, Col, Container, ProgressBar, Row } from 'react-bootstrap';
-import { useNavigate } from 'react-router-dom';
+import { Accordion, Alert, Col, Row } from 'react-bootstrap';
+import { Link } from 'react-router-dom';
+import { FiArrowRight } from 'react-icons/fi';
 import api, { errMsg } from '../api';
-import KpiCard from '../components/KpiCard';
 import { useAppData } from '../context/AppDataContext';
 import { FullPageLoading } from '../components/Loading';
-import { fmtNum } from '../utils/kpi';
+import PageHeader from '../components/PageHeader';
+import StatCards from '../components/StatCards';
+import { ResultBar, kpiStatus } from '../components/KpiBits';
 
-const groupIcon = (icon) => () => <i className={`fa fa-${icon || 'chart-bar'}`} style={{ fontSize: 20 }} />;
+function GroupCard({ g }) {
+    const items = g.kpis.filter(k => !k.is_header);
+    const n = { pass: 0, fail: 0, nodata: 0 };
+    items.forEach(k => { n[kpiStatus(k)]++; });
+    const total = items.length || 1;
+    const pct = items.length ? ((n.pass / items.length) * 100).toFixed(1) : '0.0';
+    return (
+        <Link to={`/kpi/${g.slug}`} className="group-card">
+            <div className="gc-top">
+                <span className="gc-ic" style={{ background: `linear-gradient(135deg, ${g.color1}, ${g.color2})` }}>
+                    <i className={`fa fa-${g.icon || 'chart-bar'}`} />
+                </span>
+                <div className="flex-grow-1">
+                    <h3>{g.name}</h3>
+                    <small className="text-muted">{items.length} ตัวชี้วัด</small>
+                </div>
+                <FiArrowRight className="text-muted" />
+            </div>
+            <div className="gc-nums">
+                <div><small>ผ่าน</small><b style={{ color: 'var(--ok-text)' }}>{n.pass}</b></div>
+                <div><small>ไม่ผ่าน</small><b style={{ color: 'var(--bad-text)' }}>{n.fail}</b></div>
+                <div><small>ยังไม่มีข้อมูล</small><b className="text-muted">{n.nodata}</b></div>
+            </div>
+            <div className="gc-bar">
+                <i style={{ width: `${(n.pass / total) * 100}%`, background: 'var(--ok)' }} />
+                <i style={{ width: `${(n.fail / total) * 100}%`, background: 'var(--bad)' }} />
+            </div>
+            <div className="gc-foot"><span>อัตราผ่านเกณฑ์</span><b style={{ color: 'var(--text)' }}>{pct}%</b></div>
+        </Link>
+    );
+}
 
 function HomePage() {
-    const navigate = useNavigate();
     const [data, setData] = useState(null);
     const [error, setError] = useState(null);
     const { year } = useAppData();
@@ -23,104 +54,71 @@ function HomePage() {
             .catch(err => setError(errMsg(err, 'โหลดข้อมูลไม่สำเร็จ')));
     }, [year]);
 
-    if (error) return <Container className="py-5"><Alert variant="danger">{error}</Alert></Container>;
+    if (error) return <div className="page"><Alert variant="danger">{error}</Alert></div>;
     if (!data) return <FullPageLoading />;
-    const totalKpis = data.groups.reduce((a, g) => a + g.kpis.filter(k => !k.is_header).length, 0);
+
+    const allKpis = data.groups.flatMap(g => g.kpis);
+    const totalKpis = allKpis.filter(k => !k.is_header).length;
 
     return (
-        <Container fluid style={{ backgroundColor: '#f8f9fa', padding: '25px' }}>
-            <Row>
-                <h2 className="text-start my-3" style={{ fontWeight: 700, color: '#2c3e50' }}>หน้าหลัก</h2>
-            </Row>
-
-            <Row className="g-4">
-                {data.groups.map(g => {
-                    const items = g.kpis.filter(k => !k.is_header);
-                    const passed = items.filter(k => k.value && k.value.pass).length;
-                    return (
-                        <Col md={6} xl={4} key={g.id}>
-                            <KpiCard
-                                title={`มีตัวชี้วัดทั้งหมด ${items.length} ตัวชี้วัด · ผ่าน ${passed}`}
-                                value={g.name}
-                                icon={groupIcon(g.icon)}
-                                color={g.color1}
-                                gradient={g.color2}
-                                path={`/kpi/${g.slug}`}
-                            />
-                        </Col>
-                    );
-                })}
-            </Row>
+        <div className="page">
+            <PageHeader title="ภาพรวมตัวชี้วัด" sub={`ปีงบประมาณ ${data.year} · ทุกกลุ่มตัวชี้วัด`} />
 
             {data.groups.length === 0 && (
-                <Alert variant="info" className="mt-4">ยังไม่มีกลุ่มตัวชี้วัด — ผู้ดูแลระบบเพิ่มได้ที่เมนู "กลุ่มตัวชี้วัด"</Alert>
+                <Alert variant="info">ยังไม่มีกลุ่มตัวชี้วัด — ผู้ดูแลระบบเพิ่มได้ที่เมนู "กลุ่มตัวชี้วัด"</Alert>
             )}
             {data.groups.length > 0 && totalKpis === 0 && (
-                <Alert variant="info" className="mt-4">
+                <Alert variant="info">
                     ปีงบประมาณ {data.year} ยังไม่มีตัวชี้วัด — ผู้ดูแลระบบเพิ่มได้ที่เมนู "จัดการตัวชี้วัด" หรือคัดลอกจากปีก่อนที่เมนู "ปีงบประมาณ"
                 </Alert>
             )}
 
-            <Row className="mt-4">
-                <Col>
-                    <Card>
-                        <Card.Header style={{ backgroundColor: '#FFF', fontWeight: 600, fontSize: '1.125rem' }}>
-                            สรุปตัวชี้วัด (KPI) ปีงบประมาณ {data.year}
-                        </Card.Header>
-                        <Card.Body>
-                            <Accordion defaultActiveKey={data.groups.length ? String(data.groups[0].id) : undefined}>
-                                {data.groups.map(g => (
-                                    <Accordion.Item eventKey={String(g.id)} key={g.id}>
-                                        <Accordion.Header>
-                                            <div className="d-flex justify-content-between align-items-center w-100 flex-wrap">
-                                                <strong>{g.name}</strong>
-                                                <div
-                                                    role="button"
-                                                    tabIndex={0}
-                                                    className="btn btn-sm mt-2 mt-sm-0"
-                                                    style={{ backgroundColor: '#0d9488', color: 'white', borderRadius: 10, padding: '6px 12px', fontWeight: 500, marginRight: '1rem' }}
-                                                    onClick={(e) => { e.stopPropagation(); navigate(`/kpi/${g.slug}`); }}
-                                                    onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); navigate(`/kpi/${g.slug}`); } }}
-                                                >
-                                                    รายละเอียด
-                                                </div>
-                                            </div>
-                                        </Accordion.Header>
-                                        <Accordion.Body className="bg-light">
-                                            <ul className="list-group list-group-flush">
-                                                {g.kpis.map(k => {
-                                                    const label = `${k.display_index ? k.display_index + ') ' : ''}${k.name}`;
-                                                    if (k.is_header) {
-                                                        return <li key={k.id} className="list-group-item fw-bold">{label}</li>;
-                                                    }
-                                                    const v = k.value;
-                                                    const isSub = !k.display_index;
-                                                    return (
-                                                        <li key={k.id} className="list-group-item d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
-                                                            <span className={`fw-bold ${isSub ? 'ms-4' : ''}`}>{label}</span>
-                                                            <div className="d-flex align-items-center" style={{ minWidth: 200 }}>
-                                                                <ProgressBar
-                                                                    now={v.has_data ? Math.min(100, v.percent) : 0}
-                                                                    style={{ minWidth: 120, height: 12 }}
-                                                                    variant={v.pass ? 'success' : 'danger'}
-                                                                />
-                                                                <span className={`ms-2 ${v.has_data ? (v.pass ? 'text-success' : 'text-danger') : 'text-muted'}`}>
-                                                                    {v.has_data ? `${fmtNum(v.percent)}${k.unit_label || ''}` : '-'}
-                                                                </span>
-                                                            </div>
-                                                        </li>
-                                                    );
-                                                })}
-                                            </ul>
-                                        </Accordion.Body>
-                                    </Accordion.Item>
-                                ))}
-                            </Accordion>
-                        </Card.Body>
-                    </Card>
-                </Col>
+            {totalKpis > 0 && <StatCards kpis={allKpis} />}
+
+            <Row className="g-3 mb-4">
+                {data.groups.map(g => (
+                    <Col md={6} xl={4} key={g.id}><GroupCard g={g} /></Col>
+                ))}
             </Row>
-        </Container>
+
+            {totalKpis > 0 && (
+                <div className="panel">
+                    <div className="panel-head"><h3>สรุปผลรายตัวชี้วัด</h3></div>
+                    <Accordion defaultActiveKey={data.groups.length ? String(data.groups[0].id) : undefined} flush>
+                        {data.groups.filter(g => g.kpis.length).map(g => (
+                            <Accordion.Item eventKey={String(g.id)} key={g.id}>
+                                <Accordion.Header>
+                                    <span className="d-flex align-items-center gap-2 w-100 me-3">
+                                        <i className={`fa fa-${g.icon || 'chart-bar'}`} style={{ color: g.color1, width: 18 }} />
+                                        <span className="fw-semibold flex-grow-1">{g.name}</span>
+                                        <Link to={`/kpi/${g.slug}`} className="small fw-semibold" onClick={e => e.stopPropagation()}>
+                                            ดูรายละเอียด
+                                        </Link>
+                                    </span>
+                                </Accordion.Header>
+                                <Accordion.Body className="p-0">
+                                    {g.kpis.map(k => {
+                                        const label = `${k.display_index ? k.display_index + '. ' : ''}${k.name}`;
+                                        if (k.is_header) return <div key={k.id} className="kpi-line head">{label}</div>;
+                                        return (
+                                            <div key={k.id} className="kpi-line">
+                                                <Link to={`/kpi/${g.slug}/detail/${k.id}`} className={`nm ${k.display_index ? '' : 'sub'}`} style={{ color: 'var(--text)' }}>
+                                                    {label}
+                                                </Link>
+                                                <ResultBar
+                                                    value={k.value.percent} unit={k.unit_label || ''} pass={k.value.pass}
+                                                    hasData={k.value.has_data} max={Number(k.multiplier) === 100 ? 100 : Math.max(k.value.percent, k.criterion || 0) * 1.2}
+                                                />
+                                            </div>
+                                        );
+                                    })}
+                                </Accordion.Body>
+                            </Accordion.Item>
+                        ))}
+                    </Accordion>
+                </div>
+            )}
+        </div>
     );
 }
 

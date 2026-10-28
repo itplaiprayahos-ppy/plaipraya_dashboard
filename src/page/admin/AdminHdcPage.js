@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Badge, Button, Col, Container, Row, Spinner, Table } from 'react-bootstrap';
+import { Badge, Button, Col, Row, Spinner, Table } from 'react-bootstrap';
 import Swal from 'sweetalert2';
 import api, { errMsg } from '../../api';
 import { FullPageLoading } from '../../components/Loading';
 import { fmtDate } from '../../utils/kpi';
 import { useAppData } from '../../context/AppDataContext';
 
-const TH = { backgroundColor: '#0d9488', color: '#fff', verticalAlign: 'middle' };
+const TH = { verticalAlign: 'middle' };
 
 function AdminHdcPage() {
     const [data, setData] = useState(null);
@@ -64,10 +64,10 @@ function AdminHdcPage() {
     if (!data) return <FullPageLoading />;
 
     return (
-        <Container fluid className="pb-5" style={{ backgroundColor: '#f8f9fa', padding: 25 }}>
+        <div className="page">
             <Row className="align-items-center my-3">
                 <Col>
-                    <h2 style={{ fontWeight: 700, color: '#2c3e50' }} className="mb-0">ซิงค์ข้อมูล HDC</h2>
+                    <h1 className="page-title">ซิงค์ข้อมูล HDC</h1>
                     <small className="text-muted">ปีงบประมาณ {data.year} — ตารางทั้งหมดที่ตัวชี้วัดใช้งาน</small>
                 </Col>
                 <Col xs="auto">
@@ -77,7 +77,7 @@ function AdminHdcPage() {
                 </Col>
             </Row>
 
-            <Table bordered hover responsive className="bg-white">
+            <div className="panel"><Table hover responsive className="table-modern">
                 <thead>
                     <tr>
                         <th style={TH}>tableName</th>
@@ -111,8 +111,8 @@ function AdminHdcPage() {
                         </tr>
                     ))}
                 </tbody>
-            </Table>
-        </Container>
+            </Table></div>
+        </div>
     );
 }
 

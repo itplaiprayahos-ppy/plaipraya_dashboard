@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Badge, Button, Card, Col, Container, Form, Row, Table } from 'react-bootstrap';
+import { Badge, Button, Card, Col, Form, Row, Table } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import api, { errMsg } from '../../api';
@@ -7,7 +7,7 @@ import { useAppData } from '../../context/AppDataContext';
 import { OverlayLoading } from '../../components/Loading';
 import { fmtDate } from '../../utils/kpi';
 
-const TH = { backgroundColor: '#0d9488', color: '#fff', verticalAlign: 'middle' };
+const TH = { verticalAlign: 'middle' };
 
 // จัดการปีงบประมาณ: แต่ละปีมีชุดตัวชี้วัดของตัวเอง
 function AdminYearsPage() {
@@ -83,9 +83,9 @@ function AdminYearsPage() {
     };
 
     return (
-        <Container fluid className="pb-5" style={{ backgroundColor: '#f8f9fa', padding: 25 }}>
+        <div className="page">
             <OverlayLoading show={busy} />
-            <h2 className="my-3" style={{ fontWeight: 700, color: '#2c3e50' }}>ปีงบประมาณ</h2>
+            <h1 className="page-title mb-3">ปีงบประมาณ</h1>
             <p className="text-muted">
                 ตัวชี้วัดของแต่ละปีงบประมาณแยกกัน แก้ไขปีหนึ่งไม่กระทบอีกปี — ผู้ใช้เลือกปีที่จะดูได้ที่มุมบนขวาของทุกหน้า
             </p>
@@ -121,7 +121,7 @@ function AdminYearsPage() {
                 </Card.Body>
             </Card>
 
-            <Table bordered hover responsive className="bg-white">
+            <div className="panel"><Table hover responsive className="table-modern">
                 <thead>
                     <tr>
                         <th style={TH}>ปีงบประมาณ</th>
@@ -160,8 +160,8 @@ function AdminYearsPage() {
                         );
                     })}
                 </tbody>
-            </Table>
-        </Container>
+            </Table></div>
+        </div>
     );
 }
 

@@ -8,13 +8,12 @@ function NotFound() {
     };
 
     return (
-        <Container fluid className="d-flex align-items-center justify-content-center p-0" style={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
+        <Container fluid className="d-flex align-items-center justify-content-center p-0" style={{ minHeight: '70vh' }}>
             <div className="text-center">
                 <img src={svg} alt="svg" />
-                <h1 className="display-4">Oops! Page Not Found</h1>
-                <p className="text-muted mb-4">The page you are looking for might have been removed or is temporarily unavailable.</p>
-                <Button variant="primary" onClick={() => changepage('')}
-                    style={{ backgroundColor: "#2A2F5B", border: 'none', borderRadius: '10px' }}>
+                <h1 className="page-title mt-3">ไม่พบหน้าที่ต้องการ</h1>
+                <p className="text-muted mb-4">หน้านี้อาจถูกย้ายหรือลบไปแล้ว</p>
+                <Button variant="primary" onClick={() => changepage('')}>
                     กลับสู่หน้าหลัก
                 </Button>
             </div>

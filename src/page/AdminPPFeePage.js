@@ -315,9 +315,9 @@ function AdminPPFeePage() {
                 </Spinner>
             </div>
         ) : (
-            <Container fluid className="h-100">
+            <Container fluid className="page">
                 <div className="container mt-4">
-                    <h2>จัดการปีงบประมาณ (PpFeeSchedule)</h2>
+                    <h1 className="page-title mb-3">จัดการ PP Fee Schedule</h1>
                     <Row className="gy-2 gx-2 align-items-center mt-4">
                         <Col xs={12} sm={4} md={5}>
                             <input

@@ -109,11 +109,7 @@ function ProfileEdit() {
     };
 
     return (
-        <Container fluid
-            style={{
-                backgroundColor: '#f8f9fa', padding: '25px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                height: '100%'
-            }}>
+        <Container fluid className="page">
             {loading ? (
                 <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
                     <Spinner animation="border" role="status" size="lg">
@@ -121,8 +117,9 @@ function ProfileEdit() {
                     </Spinner>
                 </div>
             ) : (
-                <Card className="p-4" style={{ maxWidth: 600, margin: '20px auto', width: '100%' }}>
-                    <h3 className="mb-4">แก้ไขข้อมูลส่วนตัว</h3>
+                <Card className="p-3" style={{ maxWidth: 640, margin: '0 auto', width: '100%' }}>
+                    <h1 className="page-title mb-1">ข้อมูลส่วนตัว</h1>
+                    <p className="page-sub mb-4">แก้ไขชื่อ อีเมล หน่วยงาน และเปลี่ยนรหัสผ่าน</p>
 
                     <Form onSubmit={handleSubmit}>
                         <Form.Group className="mb-3">
@@ -179,7 +176,7 @@ function ProfileEdit() {
                             <Button variant="secondary" disabled={submitLoading}>ยกเลิก</Button>
                             <Button type="submit" variant="primary" disabled={submitLoading}
                                 style={{
-                                    backgroundColor: hoverPrimary ? "#1f2347" : "#2A2F5B",
+                                    backgroundColor: hoverPrimary ? "var(--brand-600)" : "var(--brand)",
                                     color: "#ffffff",
                                     border: 'none'
                                 }}
@@ -191,7 +188,7 @@ function ProfileEdit() {
                     </Form>
 
                     <hr className="my-4" />
-                    <h5 className="mb-3">เปลี่ยนรหัสผ่าน</h5>
+                    <h5 className="mb-3 fw-semibold">เปลี่ยนรหัสผ่าน</h5>
                     <Form onSubmit={handlePassword}>
                         <Form.Group className="mb-3" controlId="pwCurrent">
                             <Form.Label>รหัสผ่านเดิม</Form.Label>

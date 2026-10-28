@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Badge, Button, ButtonGroup, Card, Col, Container, Form, ListGroup, Modal, Row, Table } from 'react-bootstrap';
+import { Badge, Button, ButtonGroup, Card, Col, Form, ListGroup, Modal, Row, Table } from 'react-bootstrap';
 import Swal from 'sweetalert2';
 import api, { errMsg } from '../../api';
 import { useAppData } from '../../context/AppDataContext';
 import { FullPageLoading } from '../../components/Loading';
 
-const TH = { backgroundColor: '#0d9488', color: '#fff', verticalAlign: 'middle' };
+const TH = { verticalAlign: 'middle' };
 
 function AdminSettingsPage() {
     const { reload: reloadAppData, years } = useAppData();
@@ -96,8 +96,8 @@ function AdminSettingsPage() {
     if (!values) return <FullPageLoading />;
 
     return (
-        <Container fluid className="pb-5" style={{ backgroundColor: '#f8f9fa', padding: 25 }}>
-            <h2 className="my-3" style={{ fontWeight: 700, color: '#2c3e50' }}>ตั้งค่าระบบ</h2>
+        <div className="page">
+            <h1 className="page-title mb-3">ตั้งค่าระบบ</h1>
 
             <Card className="mb-4">
                 <Card.Header className="fw-bold bg-white">ค่าทั่วไป</Card.Header>
@@ -131,7 +131,7 @@ function AdminSettingsPage() {
                     <Button size="sm" variant="success" onClick={openNewUnit}><i className="fa fa-plus me-1" /> เพิ่มหน่วยบริการ</Button>
                 </Card.Header>
                 <Card.Body>
-                    <Table bordered hover responsive size="sm" className="mb-0">
+                    <Table hover responsive className="table-modern">
                         <thead>
                             <tr>
                                 <th style={{ ...TH, width: 90 }} className="text-center">เรียง</th>
@@ -217,7 +217,7 @@ function AdminSettingsPage() {
                     <Button variant="success" onClick={saveUnit}>บันทึก</Button>
                 </Modal.Footer>
             </Modal>
-        </Container>
+        </div>
     );
 }
 

@@ -1,12 +1,6 @@
-import {
-    CDBSidebar,
-    CDBSidebarHeader,
-    CDBSidebarMenuItem,
-    CDBSidebarContent,
-    CDBSidebarMenu,
-} from 'cdbreact';
 import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
+import { FiHome, FiFileText, FiPercent, FiSettings } from 'react-icons/fi';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useAppData } from '../context/AppDataContext';
@@ -22,9 +16,9 @@ const ADMIN_LINKS = [
     ['/pp-fee-management', 'จัดการ PP Fee'],
 ];
 
-const linkClass = ({ isActive }) => `menu-link ${isActive ? 'active' : ''}`;
+const cls = (extra = '') => ({ isActive }) => `sb-link ${extra} ${isActive ? 'active' : ''}`;
 
-function SideBar() {
+function SideBar({ onNavigate }) {
     const [years, setYears] = useState([]);
     const { isAdmin } = useAuth();
     const { groups, settings } = useAppData();
@@ -35,48 +29,49 @@ function SideBar() {
             .catch(err => console.error('Error fetching years:', err));
     }, []);
 
+    const activeYears = years.filter(y => y.status === 'active');
+
     return (
-        <div style={{ display: 'flex', minHeight: '100vh', overflow: 'scroll initial' }}>
-            <CDBSidebar textColor="#fff" backgroundColor="#333">
-                <CDBSidebarHeader prefix={<i className="fa fa-bars fa-large"></i>}>
-                    <a href="/" className="text-decoration-none" style={{ color: 'inherit', marginRight: '15px' }}>
-                        {settings.site_name || 'KPI Dashboard'}
-                    </a>
-                </CDBSidebarHeader>
+        <aside className="sb" onClick={(e) => { if (e.target.closest('a')) onNavigate && onNavigate(); }}>
+            <NavLink to="/" className="sb-brand">
+                <span className="sb-logo"><FiPercent size={20} strokeWidth={2.4} /></span>
+                <span>
+                    <b>{settings.site_name || 'KPI Dashboard'}</b>
+                    <small>โรงพยาบาลปลายพระยา</small>
+                </span>
+            </NavLink>
 
-                <CDBSidebarContent className="sidebar-content">
-                    <CDBSidebarMenu>
-                        <NavLink to="/" end className={linkClass}>
-                            <CDBSidebarMenuItem icon="home">หน้าหลัก</CDBSidebarMenuItem>
+            <NavLink to="/" end className={cls()}>
+                <span className="sb-ic"><FiHome size={18} /></span>หน้าหลัก
+            </NavLink>
+
+            {groups.map(g => (
+                <NavLink key={g.id} to={`/kpi/${g.slug}`} className={cls()}>
+                    <span className="sb-ic"><i className={`fa fa-${g.icon || 'chart-bar'}`} /></span>
+                    <span className="text-truncate">{g.name}</span>
+                </NavLink>
+            ))}
+
+            {activeYears.length > 0 && (
+                <>
+                    <div className="sb-section">PP Fee Schedule</div>
+                    {activeYears.map(item => (
+                        <NavLink key={item.id} to={`/pp-fee/${item.year}`} className={cls()}>
+                            <span className="sb-ic"><FiFileText size={18} /></span>ปีงบประมาณ {item.year}
                         </NavLink>
+                    ))}
+                </>
+            )}
 
-                        {/* กลุ่มตัวชี้วัดจากฐานข้อมูล */}
-                        {groups.map(g => (
-                            <NavLink key={g.id} to={`/kpi/${g.slug}`} className={linkClass}>
-                                <CDBSidebarMenuItem icon={g.icon || 'chart-bar'}>{g.name}</CDBSidebarMenuItem>
-                            </NavLink>
-                        ))}
-
-                        <CDBSidebarMenuItem icon="file-invoice-dollar">PP FEE SCHEDULE</CDBSidebarMenuItem>
-                        {years.filter(item => item.status === 'active').map(item => (
-                            <NavLink key={item.id} to={`/pp-fee/${item.year}`} className={linkClass}>
-                                <CDBSidebarMenuItem style={{ paddingLeft: '35px' }}>{item.year}</CDBSidebarMenuItem>
-                            </NavLink>
-                        ))}
-
-                        {/* CDBSidebarMenu clone ลูกทุกตัว จึงห้ามมีค่า false/null — ใช้ array แทน */}
-                        {isAdmin ? [
-                            <CDBSidebarMenuItem key="admin-title" icon="cogs">ผู้ดูแลระบบ</CDBSidebarMenuItem>,
-                            ...ADMIN_LINKS.map(([to, label]) => (
-                                <NavLink key={to} to={to} className={linkClass}>
-                                    <CDBSidebarMenuItem style={{ paddingLeft: '35px' }}>{label}</CDBSidebarMenuItem>
-                                </NavLink>
-                            )),
-                        ] : []}
-                    </CDBSidebarMenu>
-                </CDBSidebarContent>
-            </CDBSidebar>
-        </div>
+            {isAdmin && (
+                <>
+                    <div className="sb-section"><FiSettings size={11} className="me-1" />ผู้ดูแลระบบ</div>
+                    {ADMIN_LINKS.map(([to, label]) => (
+                        <NavLink key={to} to={to} className={cls('sub')}>{label}</NavLink>
+                    ))}
+                </>
+            )}
+        </aside>
     );
 }
 

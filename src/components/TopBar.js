@@ -1,157 +1,105 @@
-import {
-    CDBNavbar,
-    CDBNavbarNav,
-    CDBNavItem,
-} from 'cdbreact';
-import { NavLink } from 'react-router-dom';
-import { useState } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
+import { Dropdown } from 'react-bootstrap';
+import { FiCalendar, FiLogIn, FiLogOut, FiMenu, FiSettings, FiUser, FiList, FiDollarSign } from 'react-icons/fi';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useAppData } from '../context/AppDataContext';
-import { Dropdown, Form } from 'react-bootstrap';
-import { FaSignOutAlt, FaUser, FaUserCog } from 'react-icons/fa';
 
-function TopBar() {
-    const { user } = useAuth();
-    const { years, year, setYear } = useAppData();
-    const username = user ? user.username : null;
-    const role = user ? user.role : null;
-    const [hoverLogin, setHoverLogin] = useState(false);
+const ADMIN_TITLES = {
+    '/admin/kpis': 'จัดการตัวชี้วัด',
+    '/admin/years': 'ปีงบประมาณ',
+    '/admin/groups': 'กลุ่มตัวชี้วัด',
+    '/admin/hdc': 'ซิงค์ข้อมูล HDC',
+    '/admin/settings': 'ตั้งค่า / หน่วยบริการ',
+    '/admin/users': 'ผู้ใช้งาน',
+    '/admin/logs': 'บันทึกการใช้งาน',
+    '/pp-fee-management': 'จัดการ PP Fee',
+    '/profile-edit': 'ข้อมูลส่วนตัว',
+    '/login': 'เข้าสู่ระบบ',
+    '/signup': 'ลงทะเบียน',
+};
 
-    const bgBlack = { backgroundColor: '#f0f1f3', color: '#2A2F5B' };
-
-    const changepage = (path) => {
-        window.location.href = "/" + path
+// เส้นทางหน้าปัจจุบัน (breadcrumb)
+function useCrumb() {
+    const { pathname } = useLocation();
+    const { groups } = useAppData();
+    if (pathname === '/') return [null, 'หน้าหลัก'];
+    const m = pathname.match(/^\/kpi\/([^/]+)(\/detail)?/);
+    if (m) {
+        const g = groups.find(x => x.slug === m[1]);
+        const name = g ? g.name : 'ตัวชี้วัด';
+        return m[2] ? [name, 'รายละเอียดตัวชี้วัด'] : ['หน้าหลัก', name];
     }
+    if (pathname.startsWith('/pp-fee/')) return ['PP Fee Schedule', `ปีงบประมาณ ${pathname.split('/')[2]}`];
+    if (ADMIN_TITLES[pathname]) return [pathname.startsWith('/admin') ? 'ผู้ดูแลระบบ' : null, ADMIN_TITLES[pathname]];
+    return [null, ''];
+}
+
+function TopBar({ onMenu }) {
+    const { user, isAdmin } = useAuth();
+    const { years, year, setYear } = useAppData();
+    const [parent, current] = useCrumb();
 
     const handleLogout = async () => {
         try {
             await api.get('/logout');
         } catch (error) {
-            console.error("Logout failed:", error);
+            console.error('Logout failed:', error);
         } finally {
-            changepage('')
+            window.location.href = '/';
         }
     };
 
+    const fullName = user ? [user.first_name, user.last_name].filter(Boolean).join(' ') : '';
+    const initial = user ? (user.first_name || user.username || '?').trim().charAt(0).toUpperCase() : '';
+
     return (
-        <div style={{ maxHeight: "73.5px", }}>
-            <CDBNavbar style={bgBlack} dark expand="md">
-                <div style={{ display: 'flex', alignItems: 'center', width: '100%', padding: '10px 32px' }}>
-                    <CDBNavbarNav right style={{ marginLeft: 'auto', alignItems: 'center' }}>
-                        {years.length > 0 && (
-                            <CDBNavItem>
-                                <div className="d-flex align-items-center me-3" style={{ color: '#2A2F5B' }}>
-                                    <span className="me-2 text-nowrap" style={{ fontWeight: 500 }}>ปีงบประมาณ</span>
-                                    <Form.Select
-                                        size="sm"
-                                        aria-label="เลือกปีงบประมาณ"
-                                        value={year || ''}
-                                        onChange={e => setYear(e.target.value)}
-                                        style={{ width: 100, borderColor: '#0d9488' }}
-                                    >
-                                        {years.map(y => <option key={y.year} value={y.year}>{y.year}</option>)}
-                                    </Form.Select>
-                                </div>
-                            </CDBNavItem>
-                        )}
-                        <CDBNavItem>
-                            {username ? (
-                                <Dropdown align="end">
-                                    <Dropdown.Toggle
-                                        variant="outline-light"
-                                        id="dropdown-user"
-                                        style={{
-                                            backgroundColor: hoverLogin ? "#0d7c73ff" : "#0d9488",
-                                            color: "#ffffff",
-                                            border: "none",
-                                            borderRadius: "8px",
-                                            padding: "6px 12px"
-                                        }}
-                                    >
-                                        {username}
-                                    </Dropdown.Toggle>
-
-                                    <Dropdown.Menu
-                                        style={{
-                                            backgroundColor: "#ffffff",
-                                            borderRadius: "8px",
-                                            border: 'none'
-                                        }}
-                                    >
-                                        <Dropdown.Item
-                                            onClick={() => changepage('profile-edit')}
-                                            style={{
-                                                color: "#2C3B50",
-                                                fontWeight: "500",
-                                                display: 'flex',
-                                                alignItems: 'center'
-                                            }}
-
-                                        >
-                                            <FaUser size={16} style={{ marginRight: '0.5rem' }} /> ข้อมูลส่วนตัว
-                                        </Dropdown.Item>
-                                        {role === "admin" && (
-                                            <>
-                                                {[
-                                                    ['admin/kpis', 'จัดการตัวชี้วัด'],
-                                                    ['admin/settings', 'ตั้งค่าระบบ'],
-                                                    ['pp-fee-management', 'จัดการ PP Fee'],
-                                                ].map(([path, label]) => (
-                                                    <Dropdown.Item
-                                                        key={path}
-                                                        onClick={() => changepage(path)}
-                                                        style={{ color: "#2C3B50", fontWeight: "500", display: 'flex', alignItems: 'center' }}
-                                                    >
-                                                        <FaUserCog size={16} style={{ marginRight: '0.5rem' }} /> {label}
-                                                    </Dropdown.Item>
-                                                ))}
-                                            </>
-                                        )}
-
-                                        <Dropdown.Item
-                                            onClick={handleLogout}
-                                            style={{
-                                                color: "#2C3B50",
-                                                fontWeight: "500",
-                                                display: 'flex',
-                                                alignItems: 'center'
-                                            }}
-                                        >
-                                            <FaSignOutAlt size={16} style={{ marginRight: '0.5rem' }} /> ออกจากระบบ
-                                        </Dropdown.Item>
-                                    </Dropdown.Menu>
-                                </Dropdown>
-
-                            ) : (
-                                <NavLink
-                                    to="/login"
-                                    className="btn"
-                                    style={{
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: 8,
-                                        backgroundColor: hoverLogin ? "#0d7c73ff" : "#0d9488",
-                                        color: "#ffffff",
-                                        border: "none",
-                                        borderRadius: "8px",
-                                        padding: "6px 14px",
-                                        fontWeight: "500"
-                                    }}
-                                    onMouseEnter={() => setHoverLogin(true)}
-                                    onMouseLeave={() => setHoverLogin(false)}
-                                >
-                                    <i className="fa fa-sign-in-alt" aria-hidden="true" />
-                                    เข้าสู่ระบบ
-                                </NavLink>
-
-                            )}
-                        </CDBNavItem>
-                    </CDBNavbarNav>
+        <header className="tb">
+            <div className="tb-left">
+                <button className="icon-btn tb-burger" onClick={onMenu} aria-label="เมนู"><FiMenu size={18} /></button>
+                <div className="tb-crumb">
+                    {parent && <>{parent} / </>}<b>{current}</b>
                 </div>
-            </CDBNavbar>
-        </div>
-    )
+            </div>
+            <div className="tb-right">
+                {years.length > 0 && (
+                    <label className="year-select mb-0" title="เลือกปีงบประมาณที่จะดู">
+                        <FiCalendar size={16} />
+                        <span className="lbl">ปีงบประมาณ</span>
+                        <select aria-label="เลือกปีงบประมาณ" value={year || ''} onChange={e => setYear(e.target.value)}>
+                            {years.map(y => <option key={y.year} value={y.year}>{y.year}</option>)}
+                        </select>
+                    </label>
+                )}
+
+                {user ? (
+                    <Dropdown align="end">
+                        <Dropdown.Toggle className="avatar-btn" id="dropdown-user">
+                            <span className="avatar">{initial}</span>
+                            <span className="who">
+                                <b>{user.username}</b>
+                                <small>{isAdmin ? 'ผู้ดูแลระบบ' : (fullName || 'ผู้ใช้')}</small>
+                            </span>
+                        </Dropdown.Toggle>
+                        <Dropdown.Menu>
+                            <Dropdown.Item as={NavLink} to="/profile-edit"><FiUser /> ข้อมูลส่วนตัว</Dropdown.Item>
+                            {isAdmin && (
+                                <>
+                                    <Dropdown.Item as={NavLink} to="/admin/kpis"><FiList /> จัดการตัวชี้วัด</Dropdown.Item>
+                                    <Dropdown.Item as={NavLink} to="/admin/settings"><FiSettings /> ตั้งค่าระบบ</Dropdown.Item>
+                                    <Dropdown.Item as={NavLink} to="/pp-fee-management"><FiDollarSign /> จัดการ PP Fee</Dropdown.Item>
+                                </>
+                            )}
+                            <Dropdown.Divider />
+                            <Dropdown.Item onClick={handleLogout}><FiLogOut /> ออกจากระบบ</Dropdown.Item>
+                        </Dropdown.Menu>
+                    </Dropdown>
+                ) : (
+                    <NavLink to="/login" className="btn btn-primary btn-icon"><FiLogIn /> เข้าสู่ระบบ</NavLink>
+                )}
+            </div>
+        </header>
+    );
 }
 
 export default TopBar;

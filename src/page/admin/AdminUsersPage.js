@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Button, Container, Form, Table } from 'react-bootstrap';
+import { Button, Form, Table } from 'react-bootstrap';
 import Swal from 'sweetalert2';
 import api, { errMsg } from '../../api';
 import { useAuth } from '../../context/AuthContext';
@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { FullPageLoading } from '../../components/Loading';
 import { fmtDate } from '../../utils/kpi';
 
-const TH = { backgroundColor: '#0d9488', color: '#fff', verticalAlign: 'middle' };
+const TH = { verticalAlign: 'middle' };
 const ROLES = [
     { value: 'user', label: 'ผู้ใช้ (ดูอย่างเดียว)' },
     { value: 'admin', label: 'ผู้ดูแลระบบ (ตั้งค่า/ซิงค์/กรอกข้อมูล)' },
@@ -73,13 +73,13 @@ function AdminUsersPage() {
     if (!users) return <FullPageLoading />;
 
     return (
-        <Container fluid className="pb-5" style={{ backgroundColor: '#f8f9fa', padding: 25 }}>
-            <h2 className="my-3" style={{ fontWeight: 700, color: '#2c3e50' }}>ผู้ใช้งาน</h2>
+        <div className="page">
+            <h1 className="page-title mb-3">ผู้ใช้งาน</h1>
             <p className="text-muted">
                 <b>ผู้ใช้</b> ดูข้อมูลได้อย่างเดียว ไม่เห็นเมนูผู้ดูแลระบบ · <b>ผู้ดูแลระบบ</b> ตั้งค่า ซิงค์ HDC กรอกข้อมูล และจัดการผู้ใช้ได้
                 — ผู้สมัครใหม่จะได้สิทธิ์ "ผู้ใช้" เสมอ ดูประวัติการใช้งานได้ที่เมนู "บันทึกการใช้งาน"
             </p>
-            <Table bordered hover responsive className="bg-white">
+            <div className="panel"><Table hover responsive className="table-modern">
                 <thead>
                     <tr>
                         <th style={TH}>ชื่อผู้ใช้</th>
@@ -114,8 +114,8 @@ function AdminUsersPage() {
                         );
                     })}
                 </tbody>
-            </Table>
-        </Container>
+            </Table></div>
+        </div>
     );
 }
 

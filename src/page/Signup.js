@@ -81,13 +81,17 @@ function Signup() {
 
 
     return (
-        <Container fluid className="d-flex justify-content-center align-items-center h-100">
+        <Container fluid className="auth-wrap">
             <Row className="w-100 justify-content-center">
                 <Col xs={12} sm={10} md={8} lg={6} xl={5}>
-                    <Card className="shadow p-4">
+                    <Card className="p-3" style={{ boxShadow: "var(--shadow-lg)" }}>
                         <Card.Body>
-                            <h3 className="text-center">KPI Dashboard</h3>
-                            <Card.Title className="text-center mb-4">ลงทะเบียน</Card.Title>
+                            <div className="text-center mb-2">
+                                <span className="sb-logo mx-auto mb-3" style={{ width: 52, height: 52, borderRadius: 15, fontSize: 22 }}><i className="fa fa-percent" /></span>
+                                <h3 className="fw-bold mb-1" style={{ fontSize: 22 }}>KPI Dashboard</h3>
+                                <div className="text-muted small">โรงพยาบาลปลายพระยา</div>
+                            </div>
+                            <Card.Title className="text-center mb-4 mt-3 fw-semibold">ลงทะเบียน</Card.Title>
 
                             <Form onSubmit={handleSignup}>
                                 <Row>

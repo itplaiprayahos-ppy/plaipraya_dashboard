@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Badge, Button, ButtonGroup, Col, Container, Form, Modal, Row, Table } from 'react-bootstrap';
+import { Badge, Button, ButtonGroup, Col, Form, Modal, Row, Table } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import api, { errMsg } from '../../api';
@@ -7,7 +7,7 @@ import { useAppData } from '../../context/AppDataContext';
 import { FullPageLoading } from '../../components/Loading';
 import { ICON_OPTIONS } from '../../utils/kpi';
 
-const TH = { backgroundColor: '#0d9488', color: '#fff', verticalAlign: 'middle' };
+const TH = { verticalAlign: 'middle' };
 const emptyGroup = { slug: '', name: '', icon: 'chart-bar', color1: '#0575e6', color2: '#021b79', show_on_home: true, active: true };
 
 function AdminGroupPage() {
@@ -74,14 +74,14 @@ function AdminGroupPage() {
     const set = (f, v) => setEditing({ ...editing, [f]: v });
 
     return (
-        <Container fluid className="pb-5" style={{ backgroundColor: '#f8f9fa', padding: 25 }}>
+        <div className="page">
             <Row className="align-items-center my-3">
-                <Col><h2 style={{ fontWeight: 700, color: '#2c3e50' }} className="mb-0">กลุ่มตัวชี้วัด</h2></Col>
+                <Col><h1 className="page-title">กลุ่มตัวชี้วัด</h1></Col>
                 <Col xs="auto"><Button variant="success" onClick={() => setEditing({ ...emptyGroup })}><i className="fa fa-plus me-1" /> เพิ่มกลุ่ม</Button></Col>
             </Row>
             <p className="text-muted">แต่ละกลุ่มจะมีเมนูใน Sidebar และหน้าแสดงผลของตัวเองที่ /kpi/&lt;รหัสกลุ่ม&gt; อัตโนมัติ</p>
 
-            <Table bordered hover responsive className="bg-white">
+            <div className="panel"><Table hover responsive className="table-modern">
                 <thead>
                     <tr>
                         <th style={{ ...TH, width: 90 }} className="text-center">เรียง</th>
@@ -123,7 +123,7 @@ function AdminGroupPage() {
                         </tr>
                     ))}
                 </tbody>
-            </Table>
+            </Table></div>
 
             <Modal show={!!editing} onHide={() => setEditing(null)} centered>
                 <Modal.Header closeButton><Modal.Title>{editing && editing.id ? 'แก้ไขกลุ่ม' : 'เพิ่มกลุ่ม'}</Modal.Title></Modal.Header>
@@ -168,7 +168,7 @@ function AdminGroupPage() {
                     <Button variant="success" onClick={save}>บันทึก</Button>
                 </Modal.Footer>
             </Modal>
-        </Container>
+        </div>
     );
 }
 
