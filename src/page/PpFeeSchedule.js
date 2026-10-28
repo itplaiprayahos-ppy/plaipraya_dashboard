@@ -4,12 +4,16 @@ import { Button, Col, Row, Spinner } from 'react-bootstrap';
 import { useNavigate, useParams } from 'react-router-dom';
 import { FaFileExcel } from 'react-icons/fa';
 import * as XLSX from "xlsx";
+import Swal from "sweetalert2";
 
 function PpFeeSchedule() {
   const { years } = useParams();
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState([]);
   const [isValid, setIsValid] = useState(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editedData, setEditedData] = useState({});
+  const [role, setRole] = useState(null);
   const navigate = useNavigate();
 
   const tableHeaders = [
@@ -23,64 +27,72 @@ function PpFeeSchedule() {
   ];
 
   useEffect(() => {
-    const loading = async () => {
-      setLoading(true)
-      setTimeout(() => {
-        setLoading(false);
-      }, 500);
-
-    };
-
-    loading();
+    setLoading(true);
+    setTimeout(() => setLoading(false), 500);
   }, []);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
+
       try {
         const yearRes = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/ppfee/${years}`);
+
         if (yearRes.data.data && yearRes.data.data.length > 0) {
           const id = yearRes.data.data[0].id;
 
           const dataRes = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/ppfee/data/${id}`);
           setData(dataRes.data);
         } else {
-          console.log("ไม่พบปีที่เลือก");
+          console.log("ไม่พบข้อมูลปีนี้");
           setData([]);
         }
       } catch (error) {
         console.error("Error fetching PPFee data:", error);
         setData([]);
       } finally {
-        setTimeout(() => {
-          setLoading(false);
-        }, 500);
+        setTimeout(() => setLoading(false), 500);
       }
     };
 
     fetchData();
-  }, [years]); // <--- เพิ่ม years เป็น dependency
+  }, [years]);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const res = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/checkAuth`, {
+          withCredentials: true
+        });
+        if (res.data.loggedIn && res.data.username) {
+          setRole(res.data.role)
+        }
+      } catch (error) {
+        if (error.response && error.response.status === 401) {
+          return
+        }
+        // console.error("Auth check failed:", error);
+      }
+    };
+    checkAuth();
+  }, []);
 
   useEffect(() => {
     const checkYear = async () => {
       try {
         const res = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/ppfee/years`);
-        const data = res.data;
-
-        // ตรวจสอบว่าปีที่เข้ามามีอยู่ในฐานข้อมูล และ status เป็น active
-        const found = data.find(item =>
-          String(item.year) === String(years) && item.status === "active"
+        const found = res.data.find(
+          (item) => String(item.year) === String(years) && item.status === "active"
         );
 
         if (!found) {
-          navigate("*", { replace: true }); // ไปหน้า NotFound
+          navigate("*", { replace: true });
         } else {
           setIsValid(true);
         }
-
       } catch (err) {
         console.error(err);
-        navigate("*", { replace: true }); // ถ้าเกิด error ก็ไป NotFound
+        navigate("*", { replace: true });
       }
     };
 
@@ -90,7 +102,6 @@ function PpFeeSchedule() {
   if (isValid === null) return <div>กำลังตรวจสอบข้อมูล...</div>;
 
   const groupedData = data.reduce((acc, curr) => {
-    // ใช้ key รวมกันของหน่วยบริการและกิจกรรมหลัก
     const key = `${curr.service_unit_code}-${curr.service_unit_name}-${curr.main_activity}`;
 
     if (!acc[key]) {
@@ -114,7 +125,7 @@ function PpFeeSchedule() {
   }, {});
 
   const rows = Object.values(groupedData);
-  // สร้างตัวแปรรวมข้อมูลทั้งหมด
+
   const tableData = rows.flatMap((group) =>
     group.sub_activities.map((sub, i) => ({
       "หน่วยที่ให้บริการ": i === 0 ? group.service_unit_code : "",
@@ -129,105 +140,216 @@ function PpFeeSchedule() {
     }))
   );
 
-
   const calculateColumnWidths = (tableData) => {
     if (!tableData || tableData.length === 0) return [];
     const keys = Object.keys(tableData[0]);
+
     return keys.map((key) => ({
       wch: Math.max(key.length, ...tableData.map((item) => item[key]?.toString().length || 0)) + 2,
     }));
   };
 
   const exportToExcel = () => {
-    if (!tableData || tableData.length === 0) return;
+    if (!tableData.length) return;
+
     const worksheet = XLSX.utils.json_to_sheet(tableData);
     worksheet["!cols"] = calculateColumnWidths(tableData);
+
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, years);
-    XLSX.writeFile(workbook, `PpFeeSchedule ปีงบประมาณ ${years}.xlsx`);
+    XLSX.writeFile(workbook, `PpFeeSchedule_${years}.xlsx`);
   };
 
-  return (
-    loading ? (
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
-        <Spinner animation="border" role="status" size='lg'>
-          <span className="visually-hidden">Loading...</span>
-        </Spinner>
-      </div>
-    ) : (
-      <div className="container mt-4">
-        <h2 className="mb-4">ตารางข้อมูล PpFeeSchedule ปีงบ {years}</h2>
-        <Row style={{ display: 'flex', alignItems: "center", justifyContent: "flex-end", marginBottom: '1rem' }}>
-          <Col xs={12} sm={6} md={4} xl={3} xxl={2} className="mb-2 mb-md-0">
-            <Button
-              onClick={exportToExcel}
-              variant="outline-success"
-              style={{ width: "100%" }}
-            >
-              <FaFileExcel className="me-2" /> ส่งออก Excel
-            </Button>
-          </Col>
-        </Row>
-        <div className="table-responsive mb-4" >
-          <table className="table table-bordered align-middle">
-            <thead className="table-light">
-              <tr>
-                {tableHeaders.map((header, index) => (
-                  <th
-                    key={index}
-                    className="text-center"
-                    style={{
-                      backgroundColor: header === "จัดการ" ? '#334155' : '#0d9488',
-                      color: '#fff',
-                      textAlign: 'center'
-                    }}
-                  >
-                    {header}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.length > 0 ? (
-                rows.map((group, idx) =>
-                  group.sub_activities.map((sub, i) => (
-                    <tr key={`${idx}-${i}`}>
-                      {i === 0 && (
-                        <>
-                          <td rowSpan={group.sub_activities.length} className="text-center align-middle">
-                            {group.service_unit_code}
-                          </td>
-                          <td rowSpan={group.sub_activities.length} className="text-center align-middle">
-                            {group.service_unit_name}
-                          </td>
-                          <td rowSpan={group.sub_activities.length} className="text-center align-middle">
-                            {group.main_activity}
-                          </td>
-                        </>
+  const handleEditChange = (id, field, value) => {
+    setEditedData((prev) => ({
+      ...prev,
+      [id]: {
+        ...prev[id],
+        [field]: value,
+      },
+    }));
+  };
+
+  const handleSaveAll = async () => {
+    try {
+      const updates = Object.keys(editedData).map(async (id) => {
+        await axios.put(
+          `${process.env.REACT_APP_BACKEND_URL}/api/ppfee/data/${id}`,
+          editedData[id]
+        );
+      });
+
+      await Promise.all(updates);
+
+      Swal.fire({
+        icon: "success",
+        title: "บันทึกข้อมูลสำเร็จ",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+
+      setIsEditMode(false);
+      setEditedData({});
+      window.location.reload();
+
+    } catch (err) {
+      console.error(err);
+      Swal.fire({
+        icon: "error",
+        title: "เกิดข้อผิดพลาด",
+      });
+    }
+  };
+
+
+  return loading ? (
+    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
+      <Spinner animation="border" />
+    </div>
+  ) : (
+    <div className="container mt-4">
+
+      {/* ✅ ปุ่มแก้ไข / ยกเลิก / บันทึก */}
+      <Row className="mb-3" style={{ justifyContent: "space-between" }}>
+        <Col xs="auto">
+          {(role === "superadmin" || role === "admin") && (
+            !isEditMode ? (
+              <Button variant="warning" onClick={() => setIsEditMode(true)} style={{ color: '#FFF' }}>
+                แก้ไขข้อมูล
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setIsEditMode(false);
+                    setEditedData({});
+                  }}
+                >
+                  ยกเลิกการแก้ไข
+                </Button>
+
+                <Button
+                  variant="success"
+                  className="ms-2"
+                  onClick={handleSaveAll}
+                >
+                  บันทึกข้อมูล
+                </Button>
+              </>
+            )
+          )}
+
+        </Col>
+
+        <Col xs="auto">
+          <Button onClick={exportToExcel} variant="outline-success">
+            <FaFileExcel className="me-2" /> ส่งออก Excel
+          </Button>
+        </Col>
+      </Row>
+
+      {/* ✅ ตารางข้อมูล */}
+      <div className="table-responsive">
+        <table className="table table-bordered align-middle">
+          <thead className="table-light">
+            <tr>
+              {tableHeaders.map((header, index) => (
+                <th
+                  key={index}
+                  className="text-center"
+                  style={{ backgroundColor: '#0d9488', color: '#fff' }}
+                >
+                  {header}
+                </th>
+              ))}
+            </tr>
+          </thead>
+
+          <tbody>
+            {rows.length > 0 ? (
+              rows.map((group, idx) =>
+                group.sub_activities.map((sub, i) => (
+                  <tr key={`${idx}-${i}`}>
+
+                    {i === 0 && (
+                      <>
+                        <td rowSpan={group.sub_activities.length} className="text-center align-middle">
+                          {group.service_unit_code}
+                        </td>
+                        <td rowSpan={group.sub_activities.length} className="text-center align-middle">
+                          {group.service_unit_name}
+                        </td>
+                        <td rowSpan={group.sub_activities.length} className="text-center align-middle">
+                          {group.main_activity}
+                        </td>
+                      </>
+                    )}
+
+                    {/* กิจกรรมย่อย */}
+                    <td>{sub.sub_activity}</td>
+
+                    {/* รับบริการ */}
+                    <td className="text-center">
+                      {isEditMode ? (
+                        <input
+                          type="number"
+                          className="form-control text-center"
+                          defaultValue={sub.person_count}
+                          onChange={(e) =>
+                            handleEditChange(sub.id, "person_count", Number(e.target.value))
+                          }
+                        />
+                      ) : (
+                        sub.person_count
                       )}
-                      <td>{sub.sub_activity}</td>
-                      <td className="text-center">{sub.person_count}</td>
-                      <td className="text-center">{sub.service_count}</td>
-                      <td className="text-center">
-                        {Number(sub.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                      </td>
-                    </tr>
-                  ))
-                )
-              ) : (
-                <tr>
-                  <td colSpan="7" className="text-center">
-                    ไม่มีข้อมูล
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                    </td>
+
+                    {/* จำนวนครั้ง */}
+                    <td className="text-center">
+                      {isEditMode ? (
+                        <input
+                          type="number"
+                          className="form-control text-center"
+                          defaultValue={sub.service_count}
+                          onChange={(e) =>
+                            handleEditChange(sub.id, "service_count", Number(e.target.value))
+                          }
+                        />
+                      ) : (
+                        sub.service_count
+                      )}
+                    </td>
+
+                    {/* การเบิกจ่าย */}
+                    <td className="text-center">
+                      {isEditMode ? (
+                        <input
+                          type="number"
+                          className="form-control text-center"
+                          defaultValue={sub.amount}
+                          onChange={(e) =>
+                            handleEditChange(sub.id, "amount", Number(e.target.value))
+                          }
+                        />
+                      ) : (
+                        Number(sub.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )
+            ) : (
+              <tr>
+                <td colSpan="7" className="text-center">ไม่มีข้อมูล</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
 
-    )
-  )
+    </div>
+  );
 }
 
-export default PpFeeSchedule
+export default PpFeeSchedule;

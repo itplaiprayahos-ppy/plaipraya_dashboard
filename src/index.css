@@ -88,10 +88,17 @@ code {
 
 .menu-link:hover {
   background-color: #f0f0f038;
-  /* สีเทาอ่อนมากเวลา hover */
 }
 
 .menu-link.active {
   background-color: #e0e0e08e;
-  /* สีเทาอ่อน แต่เข้มกว่า hover เล็กน้อย */
+}
+
+.admin-card {
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.admin-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
 }
